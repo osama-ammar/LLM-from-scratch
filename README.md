@@ -26,3 +26,10 @@ This project involves building a Large Language Model (LLM) from scratch. The ob
 Install dependencies using:
 ```bash
 pip install -r requirements.txt
+
+# TODO
+
+- LLM evaluation
+- Fine tuning
+- Quantization
+- Deployment
