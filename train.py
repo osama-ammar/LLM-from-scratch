@@ -7,8 +7,14 @@ import random
 import pickle
 import argparse
 from model_architecture import *
+from helper_functions import * 
 import yaml
 
+
+"""
+- this code is to train the model in a small dataset , of characters rather than words because we don't here to actually train rather than digesting the main concepts
+
+"""
 
 # Load the configuration file
 with open('config.yaml', 'r') as f:
@@ -54,7 +60,7 @@ def get_random_chunk(split="train"):
             decoded_block = block.decode('utf-8', errors='ignore').replace('\r', '')
             
             # Train and test splits
-            data = torch.tensor(encode(decoded_block), dtype=torch.long)
+            data = torch.tensor(tokenizer(decoded_block,mode="encoder"), dtype=torch.long)
             
     return data
 
@@ -70,34 +76,18 @@ def get_batch(split):
     x, y = x.to(device), y.to(device)
     return x, y
 
-
 chars = ""
 with open("data/vocab.txt", 'r', encoding='utf-8') as f:
         text = f.read()
         chars = sorted(list(set(text)))
+        
+        
 vocab_size = len(chars)
-print( vocab_size)
-# making a tokenizer (element or character to integer ... and vice verse) ~= encoder decoder
-## this is ==character level===  tokenizer where each character can be represented by integer ... there are another types such as ==word level== tokenizer which will include every word in the language in a dict 
-char_to_int = {char_token:integer for integer , char_token in enumerate(chars)}
-int_to_char = {integer:char_token for integer , char_token in enumerate(chars)}
-
-## to convert chars to numbers and vice verse
-encode = lambda input_text : [char_to_int[i] for i in input_text]
-decode = lambda input_numbers : ''.join([int_to_char[i] for i in input_numbers])
-
-
-
 max_iters = 500
 learning_rate = 3e-4
 eval_iters = 100
 model = GPTLanguageModel(vocab_size)
-# print('loading model parameters...')
-# with open('model-01.pkl', 'rb') as f:
-#     model = pickle.load(f)
-# print('loaded successfully!')
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
-
 model = model.to(device)
 
 
@@ -140,8 +130,9 @@ print('model saved')
 
 
 prompt = 'Hello! Can you see me?'
-context = torch.tensor(encode(prompt), dtype=torch.long, device=device)
-generated_chars = decode(model.generate(context.unsqueeze(0), max_new_tokens=100)[0].tolist())
+context = torch.tensor(tokenizer(prompt,mode="encoder"), dtype=torch.long, device=device)
+model_output =model.generate(context.unsqueeze(0), max_new_tokens=100)[0].tolist()
+generated_chars = tokenizer(model_output,mode="decoder")
 print(generated_chars)
 
 

@@ -25,7 +25,7 @@ print(device)
 
 
 
-
+# making a tokenizer
 chars = ""
 with open("data/vocab.txt", 'r', encoding='utf-8') as f:
         text = f.read()

@@ -23,10 +23,14 @@ data:
   unique_vocab: "data/vocab.txt"
 
 model:
-  vocab_size: 30522
-  max_position_embeddings: 512
-  type_vocab_size: 2
-  initializer_range: 0.02
+  block_size: 128
+  max_iters: 200
+  learning_rate: 3e-4
+  eval_iters: 100
+  n_embd: 384
+  n_head: 1
+  n_layer: 1
+  dropout: 0.2
 
 training_params:
   num_epochs: 10

@@ -2,15 +2,28 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
+import yaml
 
-block_size = 128
-max_iters = 200
-learning_rate = 3e-4
-eval_iters = 100
-n_embd = 384
-n_head = 1
-n_layer = 1
-dropout = 0.2
+"""
+- this code is to train the model in a small dataset , of characters rather than words because we don't here to actually train rather than digesting the main concepts
+
+"""
+
+# Load the configuration file
+with open('config.yaml', 'r') as f:
+    config = yaml.safe_load(f)
+
+
+# Now you can use the config object in your  script
+
+block_size = config['model']['block_size']
+max_iters =  config['model']['max_iters']
+learning_rate = config['model']['learning_rate']
+eval_iters =  config['model']['eval_iters']
+n_embd =  config['model']['n_embd']
+n_head =  config['model']['n_head']
+n_layer =  config['model']['n_layer']
+dropout =  config['model']['dropout']
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
