@@ -98,7 +98,7 @@ events.*
 # model outputs
 */*/*.pth
 */*/*.pt
-*/.pkl
+*.pkl
 */*/*.onnx
 !cvml/models/*.onnx
 !cvml/models/*.pt
