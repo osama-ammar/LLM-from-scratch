@@ -88,7 +88,7 @@ class Block(nn.Module):
         self.ln2 = nn.LayerNorm(n_embd)
 
     def forward(self, x):
-        print(f"embedd : {n_embd} , {n_head}, {x.shape}")
+        #print(f"embedd : {n_embd} , {n_head}, {x.shape}")
         
         y = self.sa(x)
         x = self.ln1(x + y)
@@ -118,14 +118,14 @@ class GPTLanguageModel(nn.Module):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
     def forward(self, index, targets=None):
-        print(index.shape)
+        #(index.shape)
         B, T = index.shape
         
         # idx and targets are both (B,T) tensor of integers
         tok_emb = self.token_embedding_table(index) # (B,T,C)
         pos_emb = self.position_embedding_table(torch.arange(T, device=device)) # (T,C)
         x = tok_emb + pos_emb # (B,T,C)
-        print(f"x.shape : {x.shape}")
+        #print(f"x.shape : {x.shape}")
         x = self.blocks(x) # (B,T,C)
         x = self.ln_f(x) # (B,T,C)
         logits = self.lm_head(x) # (B,T,vocab_size)
@@ -146,7 +146,7 @@ class GPTLanguageModel(nn.Module):
             # crop idx to the last block_size tokens
             index_cond = index[:, -block_size:]
             # get the predictions
-            print(f"index cond : {index_cond.shape}")
+            #print(f"index cond : {index_cond.shape}")
             logits, loss = self.forward(index_cond)
             # focus only on the last time step
             logits = logits[:, -1, :] # becomes (B, C)

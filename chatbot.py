@@ -7,7 +7,10 @@ import pickle
 import argparse
 from model_architecture import *
 
+"""
+- this code is to interact with the model in a chat like inference
 
+"""
 
 
 
@@ -24,7 +27,7 @@ print(device)
 
 
 chars = ""
-with open("vocab.txt", 'r', encoding='utf-8') as f:
+with open("data/vocab.txt", 'r', encoding='utf-8') as f:
         text = f.read()
         chars = sorted(list(set(text)))
         

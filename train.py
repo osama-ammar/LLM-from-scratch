@@ -7,7 +7,24 @@ import random
 import pickle
 import argparse
 from model_architecture import *
+import yaml
 
+
+# Load the configuration file
+with open('config.yaml', 'r') as f:
+    config = yaml.safe_load(f)
+
+# Dynamically set the device parameter
+config['training']['device'] = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+# Now you can use the config object in your training script
+batch_size = config['training']['batch_size']
+block_size = config['training']['block_size']
+n_embd = config['training']['n_embd']
+n_head = config['training']['n_head']
+n_layer = config['training']['n_layer']
+dropout = config['training']['dropout']
+device = config['training']['device']
 
 #parser = argparse.ArgumentParser(description='This is a demonstration program')
 # Here we add an argument to the parser, specifying the expected type, a help message, etc.
@@ -15,20 +32,14 @@ from model_architecture import *
 # args = parser.parse_args()
 # Now we can use the argument value in our program.
 # print(f'batch size: {args.batch_size}')
-
 # batch_size = args.batch_size # to use the batch_size cmd arg -> python file_name.py -batch_size 32
-batch_size = 128
-block_size = 64
-n_embd = 384
-n_head = 8
-n_layer = 8
-dropout = 0.2
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 # memory map for using small snippets of text from a single file of any size
 def get_random_chunk(split="train"):
-    filename = "output_train.txt" if split == 'train' else "output_val.txt"
+    filename = "data/output_train.txt" if split == 'train' else "data/output_val.txt"
     with open(filename, 'rb') as f:
         with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
             # Determine the file size and a random position to start reading
@@ -61,7 +72,7 @@ def get_batch(split):
 
 
 chars = ""
-with open("vocab.txt", 'r', encoding='utf-8') as f:
+with open("data/vocab.txt", 'r', encoding='utf-8') as f:
         text = f.read()
         chars = sorted(list(set(text)))
 vocab_size = len(chars)
