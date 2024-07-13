@@ -33,3 +33,4 @@ pip install -r requirements.txt
 - Fine tuning
 - Quantization
 - Deployment
+- include gradient accumelation : averaging gradinats of n iterations and update parameters after n epochs 
