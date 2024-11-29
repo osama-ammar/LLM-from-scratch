@@ -12,7 +12,8 @@ import yaml
 
 
 """
-- this code is to train the model in a small dataset , of characters rather than words because we don't here to actually train rather than digesting the main concepts
+- this code is to train the model in a small dataset , of characters rather than words because we don't want  here to actually
+train rather than digesting the main concepts
 
 """
 

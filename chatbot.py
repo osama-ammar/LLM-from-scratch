@@ -12,8 +12,6 @@ from model_architecture import *
 
 """
 
-
-
 parser = argparse.ArgumentParser(description='This is a demonstration program')
 # Here we add an argument to the parser, specifying the expected type, a help message, etc.
 parser.add_argument('-batch_size', type=str, required=True, help='Please provide a batch_size')
