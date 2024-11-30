@@ -1,8 +1,6 @@
-
 import torch
 import mmap
 import random
-
 
 
 """
@@ -53,56 +51,65 @@ mmap,  allows efficient access to large files without loading them entirely into
 """
 
 
-# ckaracter tokenizer 
-def char_tokenizer( input_text , chars , mode):
-    #chars = "abcdefghijklmnopqrstuvwxyz " # we will use this beacuase any character will not come outside this
-    if mode=="encoder":
-        string_to_int = { ch:i for i,ch in enumerate(chars) } # string_to_int = {'a': 0, 'b': 1, ..., 'z': 25, ' ': 26}
-        encode = lambda s: [string_to_int[c] for c in s]    # converting input string into integers based on string_to_int dict map
+# ckaracter tokenizer
+def char_tokenizer(input_text, training_chars, mode):
+    # chars = "abcdefghijklmnopqrstuvwxyz " # we will use this beacuase any character will not come outside this
+    if mode == "encoder":
+        string_to_int = {
+            ch: i for i, ch in enumerate(training_chars)
+        }  # string_to_int = {'a': 0, 'b': 1, ..., 'z': 25, ' ': 26}
+        encode = lambda s: [
+            string_to_int[c] for c in s
+        ]  # converting input string into integers based on string_to_int dict map
         return encode(input_text)
-        
-    if mode=="decoder":
-        int_to_string = { i:ch for i,ch in enumerate(chars) }
-        decode = lambda input_text: ''.join([int_to_string[i] for i in input_text])
-        return decode(input_text)
-        
 
-# word tokenizer 
-def word_tokenizer( input_text ,text, mode):
-    #convering text into list of words , get unique words only to avoid repetition 
-    training_text = set(text.split())
-    if mode=="encoder":
-        string_to_int = { word:i for i,word in enumerate(training_text) }
+    if mode == "decoder":
+        # in this mode input_text is an encoded text ex([0, 7,2,5,9,4,3..])
+        int_to_string = {i: ch for i, ch in enumerate(training_chars)}
+        decode = lambda input_text: "".join([int_to_string[i] for i in input_text])
+        return decode(input_text)
+
+
+# word tokenizer
+def word_tokenizer(input_text, training_text, mode):
+    # convering text into list of words , get unique words only to avoid repetition
+    training_text = set(training_text.split())
+    if mode == "encoder":
+        string_to_int = {word: i for i, word in enumerate(training_text)}
         encode = lambda input_text: [string_to_int[word] for word in input_text]
         return encode(input_text)
-        
-    if mode=="decoder":
-        int_to_string = { i:word for i,word in enumerate(training_text) }
-        decode = lambda input_text: ''.join([int_to_string[i] for i in input_text])
-        return decode(input_text)
-        
 
-     
-def get_random_chunk( chars , batch_size,block_size ,split="train"):
-    filename = "data/output_train.txt" if split == 'train' else "data/output_val.txt"
-    with open(filename, 'rb') as f:
+    if mode == "decoder":
+        # in this mode input_text is an encoded text ex([0, 7,2,5,9,4,3..])
+        int_to_string = {i: word for i, word in enumerate(training_text)}
+        decode = lambda input_text: "".join([int_to_string[i] for i in input_text])
+        return decode(input_text)
+
+
+def get_random_chunk(chars, batch_size, block_size, split="train"):
+    filename = "data/output_train.txt" if split == "train" else "data/output_val.txt"
+    with open(filename, "rb") as f:
         with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
             # Determine the file size and a random position to start reading
             file_size = len(mm)
-            
+
             if block_size * batch_size > file_size:
-                raise ValueError("The requested block size is larger than the file size.")
-            
-            start_pos = random.randint(0, (file_size) - block_size*batch_size)
+                raise ValueError(
+                    "The requested block size is larger than the file size."
+                )
+
+            start_pos = random.randint(0, (file_size) - block_size * batch_size)
 
             # Seek to the random position and read the block of text
             mm.seek(start_pos)
-            block = mm.read(block_size*batch_size-1)
+            block = mm.read(block_size * batch_size - 1)
 
             # Decode the block to a string, ignoring any invalid byte sequences
-            decoded_block = block.decode('utf-8', errors='ignore').replace('\r', '')
-            
+            decoded_block = block.decode("utf-8", errors="ignore").replace("\r", "")
+
             # Train and test splits
-            data = torch.tensor(char_tokenizer(decoded_block,chars,mode="encoder"), dtype=torch.long)
-            
+            data = torch.tensor(
+                char_tokenizer(decoded_block, chars, mode="encoder"), dtype=torch.long
+            )
+
     return data
