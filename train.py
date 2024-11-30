@@ -7,7 +7,7 @@ import random
 import pickle
 import argparse
 from model_architecture import *
-from helper_functions import * 
+from helper_functions import char_tokenizer ,get_random_chunk
 import yaml
 
 
@@ -41,33 +41,27 @@ device = config['training']['device']
 # print(f'batch size: {args.batch_size}')
 # batch_size = args.batch_size # to use the batch_size cmd arg -> python file_name.py -batch_size 32
 
+
+chars = ""
+with open("data/vocab.txt", 'r', encoding='utf-8') as f:
+        text = f.read()
+        chars = sorted(list(set(text)))
+        
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-# memory map for using small snippets of text from a single file of any size
-def get_random_chunk(split="train"):
-    filename = "data/output_train.txt" if split == 'train' else "data/output_val.txt"
-    with open(filename, 'rb') as f:
-        with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
-            # Determine the file size and a random position to start reading
-            file_size = len(mm)
-            start_pos = random.randint(0, (file_size) - block_size*batch_size)
+"""
 
-            # Seek to the random position and read the block of text
-            mm.seek(start_pos)
-            block = mm.read(block_size*batch_size-1)
+Block size: Controls how many tokens per sequence (e.g., 8 tokens in this case).
+Batch size: Controls how many sequences are processed together (e.g., 2 sequences at a time).
+n_embd: Controls the dimensionality of the embedding space for each token (e.g., 768).
 
-            # Decode the block to a string, ignoring any invalid byte sequences
-            decoded_block = block.decode('utf-8', errors='ignore').replace('\r', '')
-            
-            # Train and test splits
-            data = torch.tensor(tokenizer(decoded_block,mode="encoder"), dtype=torch.long)
-            
-    return data
+"""
+
 
 
 def get_batch(split):
-    data = get_random_chunk(split)
+    data = get_random_chunk( chars , batch_size ,split=split)
     ix = torch.randint(len(data) - block_size, (batch_size,))
     #print("ix : ",ix.shape) # 4
     x = torch.stack([data[i:i+block_size] for i in ix])
@@ -77,11 +71,7 @@ def get_batch(split):
     x, y = x.to(device), y.to(device)
     return x, y
 
-chars = ""
-with open("data/vocab.txt", 'r', encoding='utf-8') as f:
-        text = f.read()
-        chars = sorted(list(set(text)))
-        
+    
         
 vocab_size = len(chars)
 max_iters = 500
@@ -131,9 +121,9 @@ print('model saved')
 
 
 prompt = 'Hello! Can you see me?'
-context = torch.tensor(tokenizer(prompt,mode="encoder"), dtype=torch.long, device=device)
+context = torch.tensor(char_tokenizer(prompt,chars,mode="encoder"), dtype=torch.long, device=device)
 model_output =model.generate(context.unsqueeze(0), max_new_tokens=100)[0].tolist()
-generated_chars = tokenizer(model_output,mode="decoder")
+generated_chars = char_tokenizer(model_output,chars,mode="decoder")
 print(generated_chars)
 
 

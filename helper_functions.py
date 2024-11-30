@@ -1,13 +1,66 @@
 
+import torch
+import torch.nn as nn
+from torch.nn import functional as F
+import mmap
+import random
+import pickle
+import argparse
+from model_architecture import *
+from helper_functions import char_tokenizer ,get_random_chunk
+import yaml
 
-chars = ""
-with open("data/vocab.txt", 'r', encoding='utf-8') as f:
-        text = f.read()
-        chars = sorted(list(set(text)))
+
+"""
+
+Block size: Controls how many tokens per sequence (e.g., 8 tokens in this case).
+Batch size: Controls how many sequences are processed together (e.g., 2 sequences at a time).
+n_embd: Controls the dimensionality of the embedding space for each token (e.g., 768).
+
+ex):
+tokenizer(words):
+        ---output--> ["I", "love", "learning", "about", "NLP", "and", "how", "models", "work", "!", "I", "also", "enjoy", "reading", "about", "transformers", "and", "embeddings", "."]
+
+block size = 8  : 
+        Block 1: ["I", "love", "learning", "about", "NLP", "and", "how", "models"]
+        Block 2: ["work", "!", "I", "also", "enjoy", "reading", "about", "transformers"]
+        Block 3: ["and", "embeddings", "."]
         
-    
+batch size =2 :
+        Batch 1:
+        Sequence 1: ["I", "love", "learning", "about", "NLP", "and", "how", "models"]
+        Sequence 2: ["work", "!", "I", "also", "enjoy", "reading", "about", "transformers"]
+
+        Batch 2:
+        Sequence 3: ["and", "embeddings", "."]
+
+embedding :
+        Token: "I" → [0.12, 0.45, -0.33, ..., 0.98] (size: 768)
+        Token: "love" → [-0.25, 0.77, 0.02, ..., -0.14] (size: 768)
+
+Block 1 Embedding Matrix:
+        [[ 0.12,  0.45, -0.33, ...,  0.98],  # "I"
+        [-0.25,  0.77,  0.02, ..., -0.14],   # "love"
+        [ 0.30, -0.21,  0.56, ...,  0.49],   # "learning"
+        ...
+        [ 0.05,  0.88, -0.31, ..., -0.02]]   # "models"
+        Matrix size: 8 [tokens] × 768 [n_embd] dimensions
+
+
+==================================================================================
+
+mmap,  allows efficient access to large files without loading them entirely into memory. It:
+
+    Randomly selects a position in the file.
+    Reads a block of text of size block_size * batch_size - 1.
+    Decodes the block, ignoring errors and replacing \r.
+    Tokenizes the block and converts it into a PyTorch tensor.
+
+"""
+
+
 # the tokenizer 
-def tokenizer( input , mode):
+def char_tokenizer( input , chars , mode):
 
     
     if mode=="encoder":
@@ -21,3 +74,42 @@ def tokenizer( input , mode):
         return decode(input)
         
         
+
+# tThe tokenizer 
+def word_tokenizer( input ,chars, mode):
+
+    if mode=="encoder":
+        string_to_int = { ch:i for i,ch in enumerate(chars) }
+        encode = lambda s: [string_to_int[c] for c in s]
+        return encode(input)
+        
+    if mode=="decoder":
+        int_to_string = { i:ch for i,ch in enumerate(chars) }
+        decode = lambda l: ''.join([int_to_string[i] for i in l])
+        return decode(input)
+        
+
+     
+def get_random_chunk( chars , batch_size ,split="train"):
+    filename = "data/output_train.txt" if split == 'train' else "data/output_val.txt"
+    with open(filename, 'rb') as f:
+        with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
+            # Determine the file size and a random position to start reading
+            file_size = len(mm)
+            
+            if block_size * batch_size > file_size:
+                raise ValueError("The requested block size is larger than the file size.")
+            
+            start_pos = random.randint(0, (file_size) - block_size*batch_size)
+
+            # Seek to the random position and read the block of text
+            mm.seek(start_pos)
+            block = mm.read(block_size*batch_size-1)
+
+            # Decode the block to a string, ignoring any invalid byte sequences
+            decoded_block = block.decode('utf-8', errors='ignore').replace('\r', '')
+            
+            # Train and test splits
+            data = torch.tensor(char_tokenizer(decoded_block,chars,mode="encoder"), dtype=torch.long)
+            
+    return data
