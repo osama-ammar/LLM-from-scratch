@@ -29,21 +29,17 @@ when text generation (inference ):
 """
 
 # Load the configuration file
-with open('config.yaml', 'r') as f:
+with open("config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
 
 # Now you can use the config object in your  script
-
-block_size = config['model']['block_size']
-max_iters =  config['model']['max_iters']
-learning_rate = config['model']['learning_rate']
-eval_iters =  config['model']['eval_iters']
-n_embd =  config['model']['n_embd']
-n_head =  config['model']['n_head']
-n_layer =  config['model']['n_layer']
-dropout =  config['model']['dropout']
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+block_size = config["model"]["block_size"]
+n_embd = config["model"]["n_embd"]
+n_head = config["model"]["n_head"]
+n_layer = config["model"]["n_layer"]
+dropout = config["model"]["dropout"]
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 class Head(nn.Module):
@@ -54,10 +50,10 @@ class Head(nn.Module):
 
     def __init__(self, head_size):
         super().__init__()
-        self.key = nn.Linear(n_embd, head_size, bias=False)  #Key projection
-        self.query = nn.Linear(n_embd, head_size, bias=False) #query projection
-        self.value = nn.Linear(n_embd, head_size, bias=False) #value projection
-        self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
+        self.key = nn.Linear(n_embd, head_size, bias=False)  # Key projection
+        self.query = nn.Linear(n_embd, head_size, bias=False)  # query projection
+        self.value = nn.Linear(n_embd, head_size, bias=False)  # value projection
+        self.register_buffer("tril", torch.tril(torch.ones(block_size, block_size)))
 
         self.dropout = nn.Dropout(dropout)
 
@@ -72,8 +68,12 @@ class Head(nn.Module):
         q = self.query(x)  # Queries: (B, T, head_size)
 
         # Compute attention scores
-        wei = q @ k.transpose(-2, -1) * k.shape[-1]**-0.5  # Scaled dot-product attention (B, T, T)
-        wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))  # Apply mask for causality
+        wei = (
+            q @ k.transpose(-2, -1) * k.shape[-1] ** -0.5
+        )  # Scaled dot-product attention (B, T, T)
+        wei = wei.masked_fill(
+            self.tril[:T, :T] == 0, float("-inf")
+        )  # Apply mask for causality
         wei = F.softmax(wei, dim=-1)  # Normalize scores
         wei = self.dropout(wei)  # Apply dropout
 
@@ -82,16 +82,21 @@ class Head(nn.Module):
         out = wei @ v  # Weighted sum: (B, T, head_size)
         return out
 
+
 # [1, 0, 0]
 # [1, 0.6, 0]
 # [1, 0.6, 0.4]
 class MultiHeadAttention(nn.Module):
-    """ multiple heads of self-attention in parallel """
+    """multiple heads of self-attention in parallel"""
 
     def __init__(self, num_heads, head_size):
         super().__init__()
-        self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])  # Create multiple heads
-        self.proj = nn.Linear(head_size * num_heads, n_embd)  # Combine outputs of all heads
+        self.heads = nn.ModuleList(
+            [Head(head_size) for _ in range(num_heads)]
+        )  # Create multiple heads
+        self.proj = nn.Linear(
+            head_size * num_heads, n_embd
+        )  # Combine outputs of all heads
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
@@ -100,13 +105,15 @@ class MultiHeadAttention(nn.Module):
         x: Tensor of shape (batch, time_steps, embedding_dim)
         Returns: Tensor of shape (batch, time_steps, embedding_dim)
         """
-        out = torch.cat([h(x) for h in self.heads], dim=-1)  # Concatenate outputs of all heads
+        out = torch.cat(
+            [h(x) for h in self.heads], dim=-1
+        )  # Concatenate outputs of all heads
         out = self.dropout(self.proj(out))  # Project back to embedding size
         return out
-    
+
 
 class FeedFoward(nn.Module):
-    """ a simple linear layer followed by a non-linearity """
+    """a simple linear layer followed by a non-linearity"""
 
     def __init__(self, n_embd):
         super().__init__()
@@ -114,16 +121,16 @@ class FeedFoward(nn.Module):
             nn.Linear(n_embd, 4 * n_embd),  # Expand dimension
             nn.ReLU(),  # Non-linearity
             nn.Linear(4 * n_embd, n_embd),  # Reduce back to original dimension
-            nn.Dropout(dropout)  # Dropout for regularization
+            nn.Dropout(dropout),  # Dropout for regularization
         )
 
     def forward(self, x):
         return self.net(x)
 
-    
+
 class Block(nn.Module):
-    """  Represents  a Transformer block: communication followed by computation """
-    
+    """Represents  a Transformer block: communication followed by computation"""
+
     def __init__(self, n_embd, n_head):
         super().__init__()
         head_size = n_embd // n_head
@@ -141,16 +148,24 @@ class Block(nn.Module):
         x = self.ln1(x + self.sa(x))  # Residual connection + attention
         x = self.ln2(x + self.ffwd(x))  # Residual connection + feedforward
         return x
-    
+
+
 class GPTLanguageModel(nn.Module):
     """
     GPT-like language model with embeddings, transformer blocks, and a language modeling head.
     """
+
     def __init__(self, vocab_size):
         super().__init__()
-        self.token_embedding_table = nn.Embedding(vocab_size, n_embd)  # Token embeddings
-        self.position_embedding_table = nn.Embedding(block_size, n_embd)  # Positional embeddings
-        self.blocks = nn.Sequential(*[Block(n_embd, n_head=n_head) for _ in range(n_layer)])  # Transformer layers
+        self.token_embedding_table = nn.Embedding(
+            vocab_size, n_embd
+        )  # Token embeddings
+        self.position_embedding_table = nn.Embedding(
+            block_size, n_embd
+        )  # Positional embeddings
+        self.blocks = nn.Sequential(
+            *[Block(n_embd, n_head=n_head) for _ in range(n_layer)]
+        )  # Transformer layers
         self.ln_f = nn.LayerNorm(n_embd)  # Final layer normalization
         self.lm_head = nn.Linear(n_embd, vocab_size)  # Language modeling head
 
@@ -176,7 +191,9 @@ class GPTLanguageModel(nn.Module):
         """
         B, T = index.shape
         tok_emb = self.token_embedding_table(index)  # Token embeddings
-        pos_emb = self.position_embedding_table(torch.arange(T, device=device))  # Positional embeddings
+        pos_emb = self.position_embedding_table(
+            torch.arange(T, device=device)
+        )  # Positional embeddings
         x = tok_emb + pos_emb  # Combine embeddings
         x = self.blocks(x)  # Apply transformer blocks
         x = self.ln_f(x)  # Final layer normalization
@@ -206,6 +223,6 @@ class GPTLanguageModel(nn.Module):
             index = torch.cat((index, index_next), dim=1)  # Append to the sequence
         return index
 
-    
+
 if __name__ == "__main__":
     pass

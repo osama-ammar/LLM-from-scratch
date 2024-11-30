@@ -25,12 +25,7 @@ config["training"]["device"] = "cuda" if torch.cuda.is_available() else "cpu"
 # Now you can use the config object in your training script
 batch_size = config["training"]["batch_size"]
 block_size = config["training"]["block_size"]
-n_embd = config["training"]["n_embd"]
-n_head = config["training"]["n_head"]
-n_layer = config["training"]["n_layer"]
-dropout = config["training"]["dropout"]
 device = config["training"]["device"]
-
 
 chars = ""
 with open("data/vocab.txt", "r", encoding="utf-8") as f:
