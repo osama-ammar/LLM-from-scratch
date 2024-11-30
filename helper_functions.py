@@ -1,14 +1,8 @@
 
 import torch
-import torch.nn as nn
-from torch.nn import functional as F
 import mmap
 import random
-import pickle
-import argparse
-from model_architecture import *
-from helper_functions import char_tokenizer ,get_random_chunk
-import yaml
+
 
 
 """
@@ -59,38 +53,37 @@ mmap,  allows efficient access to large files without loading them entirely into
 """
 
 
-# the tokenizer 
-def char_tokenizer( input , chars , mode):
-
-    
+# ckaracter tokenizer 
+def char_tokenizer( input_text , chars , mode):
+    #chars = "abcdefghijklmnopqrstuvwxyz " # we will use this beacuase any character will not come outside this
     if mode=="encoder":
-        string_to_int = { ch:i for i,ch in enumerate(chars) }
-        encode = lambda s: [string_to_int[c] for c in s]
-        return encode(input)
+        string_to_int = { ch:i for i,ch in enumerate(chars) } # string_to_int = {'a': 0, 'b': 1, ..., 'z': 25, ' ': 26}
+        encode = lambda s: [string_to_int[c] for c in s]    # converting input string into integers based on string_to_int dict map
+        return encode(input_text)
         
     if mode=="decoder":
         int_to_string = { i:ch for i,ch in enumerate(chars) }
-        decode = lambda l: ''.join([int_to_string[i] for i in l])
-        return decode(input)
-        
+        decode = lambda input_text: ''.join([int_to_string[i] for i in input_text])
+        return decode(input_text)
         
 
-# tThe tokenizer 
-def word_tokenizer( input ,chars, mode):
-
+# word tokenizer 
+def word_tokenizer( input_text ,text, mode):
+    #convering text into list of words , get unique words only to avoid repetition 
+    training_text = set(text.split())
     if mode=="encoder":
-        string_to_int = { ch:i for i,ch in enumerate(chars) }
-        encode = lambda s: [string_to_int[c] for c in s]
-        return encode(input)
+        string_to_int = { word:i for i,word in enumerate(training_text) }
+        encode = lambda input_text: [string_to_int[word] for word in input_text]
+        return encode(input_text)
         
     if mode=="decoder":
-        int_to_string = { i:ch for i,ch in enumerate(chars) }
-        decode = lambda l: ''.join([int_to_string[i] for i in l])
-        return decode(input)
+        int_to_string = { i:word for i,word in enumerate(training_text) }
+        decode = lambda input_text: ''.join([int_to_string[i] for i in input_text])
+        return decode(input_text)
         
 
      
-def get_random_chunk( chars , batch_size ,split="train"):
+def get_random_chunk( chars , batch_size,block_size ,split="train"):
     filename = "data/output_train.txt" if split == 'train' else "data/output_val.txt"
     with open(filename, 'rb') as f:
         with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:

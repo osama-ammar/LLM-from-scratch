@@ -61,7 +61,7 @@ n_embd: Controls the dimensionality of the embedding space for each token (e.g.,
 
 
 def get_batch(split):
-    data = get_random_chunk( chars , batch_size ,split=split)
+    data = get_random_chunk( chars , batch_size,block_size,split=split)
     ix = torch.randint(len(data) - block_size, (batch_size,))
     #print("ix : ",ix.shape) # 4
     x = torch.stack([data[i:i+block_size] for i in ix])
