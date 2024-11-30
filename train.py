@@ -1,10 +1,9 @@
 import torch
-import pickle
 from model_architecture import *
-from helper_functions import char_tokenizer, get_random_chunk
+from helper_functions import *
 import yaml
-
-
+import mlflow
+import os
 """
 - this code is to train the model in a small dataset , of characters rather than words because we don't want  here to actually
 train rather than digesting the main concepts
@@ -35,9 +34,9 @@ with open("data/vocab.txt", "r", encoding="utf-8") as f:
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 vocab_size = len(chars)
-max_iters = 500
-learning_rate = 3e-4
-eval_iters = 100
+max_iters = config["training_params"]["max_iters"]
+learning_rate = config["training_params"]["learning_rate"]
+eval_iters = config["training_params"]["eval_iters"]
 model = GPTLanguageModel(vocab_size)
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 model = model.to(device)
@@ -70,29 +69,34 @@ def estimate_loss():
     return out
 
 
-# create a PyTorch optimizer
 
-for iter in range(max_iters):
-    # print(iter)
-    if iter % eval_iters == 0:
-        losses = estimate_loss()
-        print(
-            f"step: {iter}, train loss: {losses['train']:.3f}, val loss: {losses['val']:.3f}"
-        )
+os.environ["MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING"] = "true"
+mlflow.set_experiment('Baseline Model')
+with mlflow.start_run():
+    for iter in range(max_iters):
+        # print(iter)
+        if iter % eval_iters == 0:
+            losses = estimate_loss()
+            print(
+                f"step: {iter}, train loss: {losses['train']:.3f}, val loss: {losses['val']:.3f}"
+            )
 
-    # sample a batch of data
-    xb, yb = get_batch("train")
+        # sample a batch of data
+        xb, yb = get_batch("train")
 
-    # evaluate the loss
-    logits, loss = model.forward(xb, yb)
-    optimizer.zero_grad(set_to_none=True)
-    loss.backward()
-    optimizer.step()
-print(loss.item())
-
-with open("model-01.pkl", "wb") as f:
-    pickle.dump(model, f)
-print("model saved")
+        # evaluate the loss
+        logits, loss = model.forward(xb, yb)
+        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        optimizer.step()
+        
+        mlflow.log_metric('train_loss', losses['train'])
+        mlflow.log_metric('validation_loss', losses['val'])
+        mlflow.pytorch.log_model(model, artifact_path='model',registered_model_name="llm_model")    
+    
+        
+    print(loss.item())
+    save_weights(model,'.',"pth")
 
 
 prompt = "Hello! Can you see me?"

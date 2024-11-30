@@ -1,6 +1,12 @@
 import torch
 import mmap
 import random
+import pickle
+from torch.nn import Module
+
+# from onnx import load as load_onnx
+# from onnx.checker import check_model
+# import onnxruntime as onnxrt
 
 
 """
@@ -113,3 +119,79 @@ def get_random_chunk(chars, batch_size, block_size, split="train"):
             )
 
     return data
+
+
+####################
+# Model operations
+####################
+
+
+def save_weights(
+    model: Module,
+    path: str,
+    mode: str = "pth"
+) -> None:
+
+    if mode == "pkl":
+        with open("model_pickled.pkl", "wb") as f:
+            pickle.dump(model, f)
+    else:
+        state = {
+        "state_dict": model.to("cpu").state_dict(),
+            }
+        torch.save(state, "model.pth")
+        
+    print("model saved")
+
+
+def load_ckp(checkpoint_path, model, optimizer):
+    """to load model and optimizer last states to resume training if needed"""
+
+    checkpoint = torch.load(checkpoint_path)
+    model.load_state_dict(checkpoint["model_state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    return model, optimizer, checkpoint["epoch"]
+
+
+# def onnx_export(model, dummy_input, save_path):
+#     """export ....."""
+
+#     # send the dummy input to cpu
+#     dummy_input = dummy_input.to("cpu")
+
+#     input_names = ["input"]
+#     output_names = ["output"]
+#     # to make the onnx model accept different input batch sizes
+#     dynamic_axes = {"input": {0: "batch_size"}, "output": {0: "batch_size"}}
+
+#     torch.onnx.export(
+#         model,
+#         dummy_input,
+#         save_path,
+#         input_names=input_names,
+#         output_names=output_names,
+#         dynamic_axes=dynamic_axes,
+#         export_params=True,
+#         keep_initializers_as_inputs=False,
+#         do_constant_folding=True,  # Constant folding is a technique that can be used to optimize ONNX models. It involves statically computing parts of the graph that rely only on constant initializers. This eliminates the need to compute them during runtime, which can improve the performance of the model.
+#         opset_version=16,  # onnx version to export to
+#     )
+
+#     # Checks
+#     model_onnx = load_onnx(save_path)  # load onnx model
+#     check_model(model_onnx)  # check onnx model
+#     print("Model exported to ONNX format.")
+
+
+# def use_onnx(onnx_model_path, input):
+#     """usi ....."""
+
+#     # Run the ONNX model with the dummy input tensor
+#     session = onnxrt.InferenceSession(onnx_model_path)
+
+#     input_names = ["input"]
+#     output_names = ["output"]
+#     result = session.run(output_names, {input_names: input})
+
+#     # Print the output of the ONNX model
+#     print(result)

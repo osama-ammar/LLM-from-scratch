@@ -25,7 +25,7 @@ data:
 model:
   block_size: 128
   max_iters: 200
-  learning_rate: 3e-4
+  learning_rate: 0.05
   eval_iters: 100
   n_embd: 384
   n_head: 1
@@ -33,11 +33,13 @@ model:
   dropout: 0.2
 
 training_params:
-  num_epochs: 10
-  log_interval: 100
+  num_epochs: 20
+  log_interval: 5
   save_interval: 1
   output_dir: "model_output/"
-
+  max_iters : 500
+  learning_rate : 0.05
+  eval_iters : 5
 
 
 
