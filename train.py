@@ -4,13 +4,21 @@ from helper_functions import *
 import yaml
 import mlflow
 import os
+
 """
+
 - this code is to train the model in a small dataset , of characters rather than words because we don't want  here to actually
 train rather than digesting the main concepts
-
+=
 Block size: Controls how many tokens per sequence (e.g., 8 tokens in this case).
 Batch size: Controls how many sequences are processed together (e.g., 2 sequences at a time).
 n_embd: Controls the dimensionality of the embedding space for each token (e.g., 768).
+
+=====================================================
+
+With utf-8: The chars list includes all unique characters, regardless of whether they are ASCII or Unicode.
+With ASCII: Only ASCII characters are included, and errors will occur if non-ASCII characters are present in the file.
+With Other Encodings: The interpretation of non-ASCII characters depends on the encoding. Some characters may be misinterpreted, replaced by placeholders, or cause errors.
 
 """
 
@@ -27,9 +35,10 @@ block_size = config["training"]["block_size"]
 device = config["training"]["device"]
 
 chars = ""
-with open("data/vocab.txt", "r", encoding="utf-8") as f:
+with open("data/vocab_chars.txt", "r", encoding="utf-8") as f:
     text = f.read()
     chars = sorted(list(set(text)))
+    
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -90,8 +99,8 @@ with mlflow.start_run():
         loss.backward()
         optimizer.step()
         
-        mlflow.log_metric('train_loss', losses['train'])
-        mlflow.log_metric('validation_loss', losses['val'])
+        mlflow.log_metric('train_loss', losses['train'] ,step=iter)
+        mlflow.log_metric('validation_loss', losses['val'],step=iter)
         mlflow.pytorch.log_model(model, artifact_path='model',registered_model_name="llm_model")    
     
         

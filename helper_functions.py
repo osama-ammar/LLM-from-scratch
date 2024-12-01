@@ -64,8 +64,8 @@ def char_tokenizer(input_text, training_chars, mode):
         string_to_int = {
             ch: i for i, ch in enumerate(training_chars)
         }  # string_to_int = {'a': 0, 'b': 1, ..., 'z': 25, ' ': 26}
-        encode = lambda s: [
-            string_to_int[c] for c in s
+        string_to_int['<UNK>'] = len(string_to_int)  # Add an unknown token to handle unknown character
+        encode = lambda input_text:[string_to_int.get(char, string_to_int['<UNK>']) for char in input_text
         ]  # converting input string into integers based on string_to_int dict map
         return encode(input_text)
 
@@ -98,6 +98,13 @@ def get_random_chunk(chars, batch_size, block_size, split="train"):
         with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
             # Determine the file size and a random position to start reading
             file_size = len(mm)
+            
+            #============================================================
+            text = f.read()
+            chars = sorted(list(set(text)))  # Extract unique characters
+            chars.append('<UNK>')  # Optionally add an unknown token
+            #============================================================
+
 
             if block_size * batch_size > file_size:
                 raise ValueError(
