@@ -8,29 +8,19 @@ This project involves building a Large Language Model (LLM) from scratch. The ob
 2. **Model Architecture**: Defines the architecture of the LLM.
 3. **Training and Evaluation**: Implements the training process and evaluates the model's performance.
 
-## Repository Structure
 
-```plaintext
-├── chatbot.py              # Main script to interact with the trained LLM
-├── data-extract-v3.py      # Handles data extraction and preprocessing
-└── model_architecture.py   # Defines the neural network architecture of the LLM
+## TODO
+- [x] LLM build from scratch [GPT] (character based for simplicity)
+- [x] making a chatbot debending on this LLM
+- [x] integrating mlflow
+- [/] extending to word based version 
+- [] Fine tuning a LLM of interest
+- [] exploring RAG
+- [] using RAG with fine tuned LLM
+- [] exploring VLLM
+- [] exploring RAG for Vision
 
-## Requirements
+### Last Issue
+- 
 
-- Python 3.8+
-- PyTorch
-- Transformers
-- Pandas
-- NumPy
 
-Install dependencies using:
-```bash
-pip install -r requirements.txt
-
-# TODO
-
-- LLM evaluation
-- Fine tuning
-- Quantization
-- Deployment
-- include gradient accumelation : averaging gradinats of n iterations and update parameters after n epochs 
