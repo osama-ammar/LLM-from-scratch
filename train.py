@@ -4,7 +4,9 @@ from helper_functions import *
 import yaml
 import mlflow
 import os
+import warnings
 
+warnings.filterwarnings("ignore")
 """
 
 - this code is to train the model in a small dataset , of characters rather than words because we don't want  here to actually
@@ -25,32 +27,29 @@ With Other Encodings: The interpretation of non-ASCII characters depends on the 
 # Load the configuration file
 with open("config.yaml", "r") as f:
     config = yaml.safe_load(f)
-
 # Dynamically set the device parameter
 config["training"]["device"] = "cuda" if torch.cuda.is_available() else "cpu"
-
-# Now you can use the config object in your training script
 batch_size = config["training"]["batch_size"]
 block_size = config["training"]["block_size"]
 device = config["training"]["device"]
-
-chars = ""
-with open("data/vocab_chars.txt", "r", encoding="utf-8") as f:
-    text = f.read()
-    chars = sorted(list(set(text)))
-    
-
-
+use_mlflow = config["training"]["use_mlflow"]
 device = "cuda" if torch.cuda.is_available() else "cpu"
-vocab_size = len(chars)
 max_iters = config["training_params"]["max_iters"]
 learning_rate = config["training_params"]["learning_rate"]
 eval_iters = config["training_params"]["eval_iters"]
+
+with open("data/vocab_chars.txt", "r", encoding="utf-8") as f:
+    text = f.read()
+    chars = sorted(list(set(text)))
+vocab_size = len(chars)
+
+
+
 model = GPTLanguageModel(vocab_size)
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 model = model.to(device)
 
-
+# getting data batch for training 
 def get_batch(split):
     data = get_random_chunk(chars, batch_size, block_size, split=split)
     ix = torch.randint(len(data) - block_size, (batch_size,))
@@ -78,10 +77,8 @@ def estimate_loss():
     return out
 
 
-
-os.environ["MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING"] = "true"
-mlflow.set_experiment('Baseline Model')
-with mlflow.start_run():
+def run_training():
+    # to suppress a warning in mlflow
     for iter in range(max_iters):
         # print(iter)
         if iter % eval_iters == 0:
@@ -91,27 +88,36 @@ with mlflow.start_run():
             )
 
         # sample a batch of data
-        xb, yb = get_batch("train")
+        input_char, output = get_batch("train")
 
         # evaluate the loss
-        logits, loss = model.forward(xb, yb)
-        optimizer.zero_grad(set_to_none=True)
-        loss.backward()
-        optimizer.step()
-        
-        mlflow.log_metric('train_loss', losses['train'] ,step=iter)
-        mlflow.log_metric('validation_loss', losses['val'],step=iter)
-        mlflow.pytorch.log_model(model, artifact_path='model',registered_model_name="llm_model")    
-    
-        
+        logits, loss = model.forward(input_char, output)
+        optimizer.zero_grad(set_to_none=True) #zering gradiants to avoid accumelation
+        loss.backward() #calculate new gradiants
+        optimizer.step() #update weights 
+        if use_mlflow:
+            mlflow.log_metric("train_loss", losses["train"], step=iter)
+            mlflow.log_metric("validation_loss", losses["val"], step=iter)
+            mlflow.pytorch.log_model(
+                model,
+                artifact_path="model",
+                registered_model_name="llm_model",
+                input_example=None,
+            )
+
     print(loss.item())
-    save_weights(model,'.',"pth")
+    save_weights(model, ".", "pth")
 
 
-prompt = "Hello! Can you see me?"
-context = torch.tensor(
-    char_tokenizer(prompt, chars, mode="encoder"), dtype=torch.long, device=device
-)
-model_output = model.generate(context.unsqueeze(0), max_new_tokens=100)[0].tolist()
-generated_chars = char_tokenizer(model_output, chars, mode="decoder")
-print(generated_chars)
+if use_mlflow:
+    os.environ["MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING"] = "true"
+    mlflow.set_experiment("Baseline Model")
+    with mlflow.start_run():
+        mlflow.pytorch.log_model(
+            model, artifact_path="model", pip_requirements="requirements.txt"
+        )
+        run_training()
+else:
+    run_training()
+
+
